@@ -10,38 +10,39 @@
    ──────────────────────────────────────── */
 var PROJECTS = [
   {
-    title: 'Personal Brand Website',
+    title: 'Canteen Mobile App (Flutter + Firebase)',
     screenshots: [
-      { label: 'Home — Hero section', bg: 'ss-bg-1' },
-      { label: 'About — Bio page', bg: 'ss-bg-2' },
-      { label: 'Contact — Form view', bg: 'ss-bg-3' }
+      { label: 'Login and role selection', src: 'screenshots/canteen-1.png', bg: 'ss-bg-1' },
+      { label: 'Menu and ordering flow', src: 'screenshots/canteen-2.png', bg: 'ss-bg-2' },
+      { label: 'Order management view', src: 'screenshots/canteen-3.png', bg: 'ss-bg-3' },
+      { label: 'Sales summary and history', src: 'screenshots/canteen-4.png', bg: 'ss-bg-4' }
     ]
   },
   {
-    title: 'Study Tracker',
+    title: 'eTala Library Database (Django + MySQL)',
     screenshots: [
-      { label: 'Dashboard — Overview', bg: 'ss-bg-1' },
-      { label: 'Session timer', bg: 'ss-bg-2' },
-      { label: 'Subject log', bg: 'ss-bg-3' },
-      { label: 'Goals tracker', bg: 'ss-bg-4' }
+      { label: 'Book catalog table', src: 'screenshots/etala-1.png', bg: 'ss-bg-1' },
+      { label: 'Borrow and return records', src: 'screenshots/etala-2.png', bg: 'ss-bg-2' },
+      { label: 'Admin dashboard stats', src: 'screenshots/etala-3.png', bg: 'ss-bg-3' },
+      { label: 'Search and filter tools', src: 'screenshots/etala-4.png', bg: 'ss-bg-4' }
     ]
   },
   {
-    title: 'Weather Dashboard',
+    title: 'SideStep Sneaker Website (Django + PostgreSQL)',
     screenshots: [
-      { label: 'Main view — Current weather', bg: 'ss-bg-1' },
-      { label: 'Search — Location lookup', bg: 'ss-bg-2' },
-      { label: 'Extended forecast', bg: 'ss-bg-3' }
+      { label: 'Storefront homepage', src: 'screenshots/sidestep-1.png', bg: 'ss-bg-1' },
+      { label: 'Product details and checkout', src: 'screenshots/sidestep-2.png', bg: 'ss-bg-2' },
+      { label: 'Auto-post API integration logs', src: 'screenshots/sidestep-3.png', bg: 'ss-bg-3' },
+      { label: 'Orders and inventory panel', src: 'screenshots/sidestep-4.png', bg: 'ss-bg-4' }
     ]
   },
   {
-    title: 'CSS Art Collection',
+    title: 'Intramurals AJAX Scoretracker',
     screenshots: [
-      { label: 'Piece I — Geometric study', bg: 'ss-bg-1' },
-      { label: 'Piece II — Typography art', bg: 'ss-bg-2' },
-      { label: 'Piece III — Animation loop', bg: 'ss-bg-3' },
-      { label: 'Piece IV — UI experiment', bg: 'ss-bg-4' },
-      { label: 'Piece V — Color study', bg: 'ss-bg-5' }
+      { label: 'Live team standings', src: 'screenshots/scoretracker-1.png', bg: 'ss-bg-1' },
+      { label: 'Per-event scoring updates', src: 'screenshots/scoretracker-2.png', bg: 'ss-bg-2' },
+      { label: 'Admin score input panel', src: 'screenshots/scoretracker-3.png', bg: 'ss-bg-3' },
+      { label: 'Mobile live scoreboard view', src: 'screenshots/scoretracker-4.png', bg: 'ss-bg-4' }
     ]
   }
 ];
@@ -127,46 +128,72 @@ colorContainers.find('.color-square').click(function () {
    BOOKBLOCK SETUP
    ──────────────────────────────────────── */
 var bookBlock         = $('.bb-bookblock');
-var backCover         = bookBlock.parents('.bk-book').find('.bk-cover-back');
-var backCoverBookBlock = bookBlock.clone();
-backCoverBookBlock.appendTo(backCover);
+var backCover = bookBlock.parents('.bk-book').find('.bk-cover-back');
+var backCoverBookBlock = $();
+var hasBookblock = typeof $.fn.bookblock === 'function' && bookBlock.length > 0;
 
-var bbFirst = function () { bookBlock.bookblock('first');  backCoverBookBlock.bookblock('first'); };
-var bbLast  = function () { bookBlock.bookblock('last');   backCoverBookBlock.bookblock('last'); };
-var bbLastIndex = bookBlock.children().length - 1;
+var bbFirst = function () {};
+var bbLast = function () {};
 
 var bbNext = function () {
-  if (book.data('flip'))    return bookDefault();
+  if (book.data('flip')) return bookDefault();
   if (!book.data('opened')) return bookInside();
-  if (bookBlock.find('.bb-item:visible').index() === bbLastIndex)
-    return bookBack(), bbFirst();
-  bookBlock.bookblock('next');
-  backCoverBookBlock.bookblock('next');
+  return bookBack();
 };
 
 var bbPrev = function () {
-  if (book.data('flip'))    return bbLast(), bookInside();
+  if (book.data('flip')) return bookInside();
   if (!book.data('opened')) return bookBack();
-  if (bookBlock.find('.bb-item:visible').index() === 0)
-    return bookDefault();
-  bookBlock.bookblock('prev');
-  backCoverBookBlock.bookblock('prev');
+  return bookDefault();
 };
 
-bookBlock.children().add(backCoverBookBlock.children()).on({
-  swipeleft:  function () { bbPrev(); return false; },
-  swiperight: function () { bbPrev(); return false; },
-  click: function (e) {
-    /* Don't flip if clicking the project card */
-    if ($(e.target).closest('.proj-preview-card').length) return;
-    if ($(e.target).parents('.bk-cover-back').length === 0) bbNext();
-    else bbPrev();
-    return false;
-  }
-});
+if (hasBookblock) {
+  backCoverBookBlock = bookBlock.clone();
+  backCoverBookBlock.appendTo(backCover);
 
-bookBlock.bookblock({ speed: 800, shadow: false });
-backCoverBookBlock.bookblock({ speed: 800, shadow: false });
+  bbFirst = function () {
+    bookBlock.bookblock('first');
+    backCoverBookBlock.bookblock('first');
+  };
+
+  bbLast = function () {
+    bookBlock.bookblock('last');
+    backCoverBookBlock.bookblock('last');
+  };
+
+  var bbLastIndex = bookBlock.children().length - 1;
+
+  bbNext = function () {
+    if (book.data('flip')) return bookDefault();
+    if (!book.data('opened')) return bookInside();
+    if (bookBlock.find('.bb-item:visible').index() === bbLastIndex) return bookBack(), bbFirst();
+    bookBlock.bookblock('next');
+    backCoverBookBlock.bookblock('next');
+  };
+
+  bbPrev = function () {
+    if (book.data('flip')) return bbLast(), bookInside();
+    if (!book.data('opened')) return bookBack();
+    if (bookBlock.find('.bb-item:visible').index() === 0) return bookDefault();
+    bookBlock.bookblock('prev');
+    backCoverBookBlock.bookblock('prev');
+  };
+
+  bookBlock.children().add(backCoverBookBlock.children()).on({
+    swipeleft: function () { bbPrev(); return false; },
+    swiperight: function () { bbPrev(); return false; },
+    click: function (e) {
+      /* Don't flip if clicking the project card */
+      if ($(e.target).closest('.proj-preview-card').length) return;
+      if ($(e.target).parents('.bk-cover-back').length === 0) bbNext();
+      else bbPrev();
+      return false;
+    }
+  });
+
+  bookBlock.bookblock({ speed: 800, shadow: false });
+  backCoverBookBlock.bookblock({ speed: 800, shadow: false });
+}
 
 /* Keyboard nav */
 var throttle = function (fn, limit, queueMax) {
@@ -207,8 +234,13 @@ var currentIndex   = 0;
 
 /* Build screenshot placeholder HTML */
 function buildScreenshot(ss, index) {
+  var imageHtml = ss.src
+    ? '<img class="modal-image" src="' + ss.src + '" alt="' + ss.label + '" loading="lazy" onerror="this.style.display=\'none\'" />'
+    : '';
+
   return (
     '<div class="modal-screenshot ' + ss.bg + ' ' + (index === 0 ? 'active' : '') + '" data-index="' + index + '">' +
+      imageHtml +
       '<div class="ss-mockbody">' +
         '<div class="ss-mockbar"></div>' +
         '<div class="ss-mockbar short"></div>' +
@@ -247,9 +279,6 @@ function openModal(projectIndex) {
 
   updateModal();
   modal.addClass('active');
-
-  /* Stop book interaction while modal is open */
-  e && e.stopPropagation && e.stopPropagation();
 }
 
 /* Update counter, dots, visibility */

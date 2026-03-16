@@ -26,14 +26,13 @@
 *, *::before, *::after { box-sizing: border-box; padding: 0; margin: 0; }
 .clearfix::before, .clearfix::after { content: " "; display: table; }
 .clearfix::after { clear: both; }
-.clearfix { *zoom: 1; }
 html, body { height: 100%; }
 
 body {
   font-family: 'IBM Plex Mono', monospace;
   background: var(--bg);
   color: var(--text);
-  font-size: 15px;
+  font-size: 16px;
   overflow: scroll;
   overflow-x: hidden;
 }
@@ -45,9 +44,9 @@ a:hover { color: var(--accent); }
 .wrapper-table   { display: table; width: 100%; height: 100%; }
 .wrapper-vertical { display: table-cell; vertical-align: middle; }
 .wrapper-horizontal {
-  min-height: 350px;
-  width: 50%;
-  max-width: 500px;
+  min-height: 420px;
+  width: 68%;
+  max-width: 700px;
   margin: auto;
   position: relative;
 }
@@ -61,6 +60,7 @@ a:hover { color: var(--accent); }
    ══════════════════════════════════════════ */
 .bk-book {
   position: absolute; width: 100%; height: 100%;
+  font-size: 1.26em;
   transform-style: preserve-3d;
   transition: transform .5s, margin .5s;
 }
@@ -619,6 +619,16 @@ a:hover { color: var(--accent); }
 }
 .modal-screenshot.active { opacity: 1; }
 
+.modal-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #0f0f0f;
+  z-index: 3;
+}
+
 /* Each screenshot placeholder gets a distinct muted tone */
 .ss-bg-1 { background: #161618; }
 .ss-bg-2 { background: #161618; }
@@ -765,9 +775,13 @@ a:hover { color: var(--accent); }
 
 /* ── Responsive ── */
 @media (max-width: 700px) {
-  body { font-size: 50%; }
+  body { font-size: 15px; }
+  .wrapper-horizontal { width: 92%; max-width: 640px; min-height: 390px; }
+  .bk-book { font-size: 1.1em; }
   .bk-book .bk-cover .bk-title div { max-width: 100%; }
 }
 @media (max-width: 430px) {
-  body { font-size: 35%; }
+  body { font-size: 14px; }
+  .wrapper-horizontal { min-height: 360px; }
+  .bk-book { font-size: 1em; }
 }
