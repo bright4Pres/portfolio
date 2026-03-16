@@ -191,18 +191,19 @@ colorContainers.find('.color-square').on('click', function (e) {
 var bookBlock          = $('.bb-bookblock');
 var backCover          = bookBlock.parents('.bk-book').find('.bk-cover-back');
 var backCoverBookBlock = $();
-var hasBookblock       = typeof $.fn.bookblock === 'function' && bookBlock.length > 0;
+var hasBookblock = typeof $.fn.bookblock === 'function' && bookBlock.length > 0;
 var fallbackItems      = bookBlock.children('.bb-item');
 var fallbackIndex      = 0;
 
 function showFallbackItem(index) {
   if (!fallbackItems.length) return;
   fallbackIndex = Math.max(0, Math.min(index, fallbackItems.length - 1));
-  fallbackItems.hide().eq(fallbackIndex).show();
+  fallbackItems.removeClass('is-active').eq(fallbackIndex).addClass('is-active');
 }
 
-// Keep at least one spread visible even if the BookBlock plugin is not active.
+// Always use the deterministic fallback renderer to keep both pages visible.
 if (fallbackItems.length) {
+  book.addClass('bb-fallback');
   showFallbackItem(0);
 }
 
@@ -334,11 +335,32 @@ if (hasBookblock) {
     }
   });
 
-  bookBlock.bookblock({ speed: 800, shadow: false });
-  backCoverBookBlock.bookblock({ speed: 800, shadow: false });
+  bookBlock.bookblock({ speed: 800, shadows: false });
+  backCoverBookBlock.bookblock({ speed: 800, shadows: false });
 } else {
   bbFirst = function () { showFallbackItem(0); };
   bbLast  = function () { showFallbackItem(fallbackItems.length - 1); };
+
+  /* Fallback page turn on swipe/click — skip ss-cell and external links */
+  bookBlock.children().on({
+    swipeleft: function () {
+      bbNext();
+      return false;
+    },
+    swiperight: function () {
+      bbPrev();
+      return false;
+    },
+    click: function (e) {
+      var state = getBookState();
+      if (!canNavigate()) return;
+      if (state !== 'inside' && state !== 'back') return;
+      if ($(e.target).closest('.ss-cell').length) return;
+      if ($(e.target).closest('.proj-github').length) return;
+      e.stopPropagation();
+      bbNext();
+    }
+  });
 }
 
 /* ─── Keyboard nav ─── */

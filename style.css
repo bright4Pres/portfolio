@@ -520,6 +520,25 @@ a:hover { color: var(--accent); }
 .no-js .bb-bookblock, .no-js ul.bb-custom-grid li { width: auto; height: auto; }
 .no-js .bb-item { display: block; position: relative; }
 
+/* Fallback layout when BookBlock plugin is unavailable */
+.bk-book.bb-fallback .bk-page > div { margin-left: 0; }
+.bk-book.bb-fallback .bb-bookblock { width: 100%; }
+.bk-book.bb-fallback .bb-item {
+  width: 100%;
+  display: block;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(2%);
+  transition: opacity 0.32s ease, transform 0.32s ease;
+}
+.bk-book.bb-fallback .bb-item.is-active {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(0);
+}
+.bk-book.bb-fallback.bk-viewinside { margin-left: 0; }
+.bk-book.bb-fallback.bk-viewinside .bk-front { transform: translate3d(0,0,20px) rotate3d(0,1,0,-175deg); }
+
 /* ══════════════════════════════════════════
    TINT PALETTE
    ══════════════════════════════════════════ */
