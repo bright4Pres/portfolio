@@ -70,11 +70,24 @@ a:hover { color: var(--accent); }
   z-index: 10;
 }
 .bk-front > div { backface-visibility: hidden; transform-style: preserve-3d; }
+
+/* ── FIX: was display:none which broke bookblock dimension calc on init.
+         visibility:hidden keeps the element in layout so the plugin can
+         measure it, but hides it visually until the book opens.          ── */
 .bk-page {
   transform: translate3d(0,0,19px);
-  display: none; width: 100%; height: 100%; overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+  width: 100%; height: 100%; overflow: hidden;
   backface-visibility: hidden; z-index: 9;
 }
+
+/* ── Show pages once the book is open ── */
+.bk-viewinside .bk-page {
+  visibility: visible;
+  pointer-events: auto;
+}
+
 .bk-page > div { margin-left: -100%; }
 .bk-front, .bk-back, .bk-front > div { width: 100%; height: 100%; }
 .bk-left, .bk-right  { width: 40px; left: -20px; }
@@ -248,7 +261,7 @@ a:hover { color: var(--accent); }
   gap: 5px;
   flex: 1;
   min-height: 0;
-  height: 0;        /* tells flex→grid to divide container height into rows, not expand from content */
+  height: 0;
   cursor: pointer;
 }
 
@@ -276,7 +289,7 @@ a:hover { color: var(--accent); }
   display: block;
   transition: transform 0.3s, opacity 0.2s;
   opacity: 0.9;
-  z-index: 1;              /* above ::before grid pattern */
+  z-index: 1;
 }
 
 .ss-cell:hover img {
@@ -284,7 +297,6 @@ a:hover { color: var(--accent); }
   opacity: 1;
 }
 
-/* Fallback grid pattern — behind image */
 .ss-cell::before {
   content: '';
   position: absolute; inset: 0;
@@ -293,7 +305,7 @@ a:hover { color: var(--accent); }
     linear-gradient(90deg, var(--line) 1px, transparent 1px);
   background-size: 16px 16px;
   opacity: 0.6;
-  z-index: 0;              /* behind image */
+  z-index: 0;
 }
 
 .ss-cell-label {
@@ -316,7 +328,6 @@ a:hover { color: var(--accent); }
   opacity: 1;
 }
 
-/* Expand icon on hover */
 .ss-cell::after {
   content: '⤢';
   position: absolute;
@@ -330,7 +341,6 @@ a:hover { color: var(--accent); }
 }
 .ss-cell:hover::after { opacity: 1; }
 
-/* Tagline below grid */
 .proj-tagline {
   font-family: 'Cormorant Garamond', serif; font-weight: 300;
   font-size: 0.82em; line-height: 1.4; color: var(--muted);
@@ -423,20 +433,12 @@ a:hover { color: var(--accent); }
   background: #0d0d0d;
 }
 
-/* Individual screenshot inside modal */
 .modal-screenshot {
   position: absolute; inset: 0;
   opacity: 0; transition: opacity 0.25s;
   display: flex; align-items: center; justify-content: center;
 }
 .modal-screenshot.active { opacity: 1; }
-
-.modal-image {
-  width: 100%; height: 100%;
-  object-fit: contain;
-  object-position: center;
-  display: block;
-}
 
 .modal-image {
   position: absolute;
@@ -446,16 +448,15 @@ a:hover { color: var(--accent); }
   object-fit: contain;
   object-position: center;
   display: block;
-  z-index: 2;              /* above .ss-placeholder */
+  z-index: 2;
 }
 
-/* Skeleton — only visible while/if image fails */
 .ss-placeholder {
   position: absolute; inset: 0;
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   gap: 8px; background: #111;
-  z-index: 1;              /* behind loaded image */
+  z-index: 1;
 }
 .ss-mockbody { width: 60%; display: flex; flex-direction: column; gap: 6px; }
 .ss-mockbar  { height: 6px; background: var(--faint); }

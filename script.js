@@ -24,10 +24,10 @@ var PROJECTS = [
   {
     title: 'SideStep Sneaker Website',
     screenshots: [
-      { label: 'Storefront homepage',           src: 'screenshots/sidestep-1.png' },
-      { label: 'Product details and checkout',  src: 'screenshots/sidestep-2.png' },
-      { label: 'Auto-post API integration logs',src: 'screenshots/sidestep-3.png' },
-      { label: 'Orders and inventory panel',    src: 'screenshots/sidestep-4.png' }
+      { label: 'Storefront homepage',            src: 'screenshots/sidestep-1.png' },
+      { label: 'Product details and checkout',   src: 'screenshots/sidestep-2.png' },
+      { label: 'Auto-post API integration logs', src: 'screenshots/sidestep-3.png' },
+      { label: 'Orders and inventory panel',     src: 'screenshots/sidestep-4.png' }
     ]
   },
   {
@@ -65,52 +65,96 @@ function initImageFallback(img, preferredPath) {
 function tryNextImage(img) {
   var order = (img.dataset.order || '').split(',').filter(Boolean);
   var nextIndex = parseInt(img.dataset.tryIndex || '0', 10) + 1;
-
-  if (nextIndex >= order.length) {
-    img.style.display = 'none';
-    return;
-  }
-
+  if (nextIndex >= order.length) { img.style.display = 'none'; return; }
   img.dataset.tryIndex = String(nextIndex);
   img.src = img.dataset.base + '.' + order[nextIndex];
 }
 
 /* ─── Book state ─── */
-var book            = $('.bk-book');
-var viewBookLink    = book.find('.bk-bookview');
-var viewBackLink    = book.find('.bk-bookback');
+var book = $('.bk-book');
+
+// FIX: use .btn-open and .btn-back — no collision with structural divs
+var viewBookLink    = book.find('.btn-open');
+var viewBackLink    = book.find('.btn-back');
 var changeColorLink = book.find('.change-color');
 var colorContainers = book.find('.color-container');
 
-var bookDefault = function () {
-  book.data({ opened: false, flip: false })
-      .removeClass('bk-viewback bk-viewinside')
-      .addClass('bk-bookdefault');
-};
-var bookBack = function () {
-  book.data({ opened: false, flip: true })
-      .removeClass('bk-viewinside bk-bookdefault')
-      .addClass('bk-viewback');
-};
-var bookInside = function () {
+function setBookState(state) {
+  if (state === 'default') {
+    book.data({ opened: false, flip: false })
+        .removeClass('bk-viewback bk-viewinside')
+        .addClass('bk-bookdefault');
+    return;
+  }
+  if (state === 'back') {
+    book.data({ opened: false, flip: true })
+        .removeClass('bk-viewinside bk-bookdefault')
+        .addClass('bk-viewback');
+    return;
+  }
   book.data({ opened: true, flip: false })
       .removeClass('bk-viewback bk-bookdefault')
       .addClass('bk-viewinside');
-};
+}
+
+function getBookState() {
+  if (book.hasClass('bk-viewinside')) return 'inside';
+  if (book.hasClass('bk-viewback')) return 'back';
+  return 'default';
+}
+
+var bookDefault = function () { setBookState('default'); };
+var bookBack = function () { setBookState('back'); };
+var bookInside = function () { setBookState('inside'); };
 
 bookDefault();
 
-viewBackLink.on('click', function () { book.data('flip') ? bookDefault() : bookBack(); return false; });
-viewBookLink.on('click', function () { bookInside(); return false; });
+// FIX: e.preventDefault() + e.stopPropagation() instead of return false,
+//      so the html click-outside handler still works but these links don't bubble.
+viewBackLink.on('click', function (e) {
+  e.preventDefault();
+  e.stopImmediatePropagation();
+  e.stopPropagation();
+  if (!canNavigate()) return;
+  var state = getBookState();
+  if (state === 'back') {
+    bookDefault();
+    lockNav(750);
+    return;
+  }
+  if (state === 'inside') {
+    bookBack();
+    lockNav(750);
+  }
+});
 
-/* Click outside closes book (unless modal open) */
+viewBookLink.on('click', function (e) {
+  e.preventDefault();
+  e.stopImmediatePropagation();
+  e.stopPropagation();
+  if (!canNavigate()) return;
+  bookInside();
+  lockNav(750);
+});
+
+book.find('.bk-cover').on('click', function (e) {
+  if ($(e.target).closest('a, .color-container, .color-square').length) return;
+  e.stopPropagation();
+  if (!canNavigate()) return;
+  if (getBookState() === 'default') {
+    bookInside();
+    lockNav(750);
+  }
+});
+
+// FIX: removed return false from html handler — it was killing ALL click events
+//      on the page. Now only calls bookDefault when clicking outside the book.
 $('html').on('click', function (e) {
-  if ($('#screenshotModal').hasClass('active')) return false;
-  if ($(e.target).parents('.bk-book').length === 0) {
+  if ($('#screenshotModal').hasClass('active')) return;
+  if ($(e.target).closest('.bk-book').length === 0) {
     bookDefault();
     if (!colorContainers.hasClass('hidden')) changeColorLink.click();
   }
-  return false;
 });
 
 /* ─── Tint switcher ─── */
@@ -119,14 +163,17 @@ var colorLabel = (function () {
   return function () { labels.push(labels.shift()); return labels[0]; };
 })();
 
-changeColorLink.click(function () {
+changeColorLink.on('click', function (e) {
+  e.preventDefault();
+  e.stopPropagation();
   colorContainers.toggleClass('hidden');
   $(this).text(colorLabel());
 });
 
 var dynamicStyle = $('<style></style>').appendTo('head');
 
-colorContainers.find('.color-square').click(function () {
+colorContainers.find('.color-square').on('click', function (e) {
+  e.stopPropagation();
   var c = $(this).attr('class').match(/background-color-([a-f0-9]{6})/i)[1];
   dynamicStyle.text([
     '.highlight{color:#' + c + '}',
@@ -141,22 +188,124 @@ colorContainers.find('.color-square').click(function () {
 });
 
 /* ─── Bookblock setup ─── */
-var bookBlock         = $('.bb-bookblock');
-var backCover         = bookBlock.parents('.bk-book').find('.bk-cover-back');
+var bookBlock          = $('.bb-bookblock');
+var backCover          = bookBlock.parents('.bk-book').find('.bk-cover-back');
 var backCoverBookBlock = $();
-var hasBookblock      = typeof $.fn.bookblock === 'function' && bookBlock.length > 0;
+var hasBookblock       = typeof $.fn.bookblock === 'function' && bookBlock.length > 0;
+var fallbackItems      = bookBlock.children('.bb-item');
+var fallbackIndex      = 0;
+
+function showFallbackItem(index) {
+  if (!fallbackItems.length) return;
+  fallbackIndex = Math.max(0, Math.min(index, fallbackItems.length - 1));
+  fallbackItems.hide().eq(fallbackIndex).show();
+}
+
+// Keep at least one spread visible even if the BookBlock plugin is not active.
+if (fallbackItems.length) {
+  showFallbackItem(0);
+}
 
 var bbFirst = function () {};
 var bbLast  = function () {};
-var bbNext  = function () {
-  if (book.data('flip'))    return bookDefault();
-  if (!book.data('opened')) return bookInside();
-  return bookBack();
+var navLockUntil = 0;
+
+function lockNav(ms) {
+  navLockUntil = Date.now() + (ms || 700);
+}
+
+function canNavigate() {
+  return Date.now() >= navLockUntil;
+}
+
+// FIX: cleaner state machine — no ambiguous early returns that skip needed transitions
+var bbNext = function () {
+  if (!canNavigate()) return;
+  var state = getBookState();
+  if (state === 'default') {
+    bookInside();
+    lockNav(750);
+    return;
+  }
+  if (state === 'back') {
+    bookDefault();
+    lockNav(750);
+    return;
+  }
+  // opened and not flipped — advance pages, or go to back cover on last page
+  if (hasBookblock) {
+    var items     = bookBlock.children('.bb-item');
+    var lastIndex = items.length - 1;
+    var curIndex  = items.filter(':visible').index();
+    if (curIndex === lastIndex) {
+      bookBack();
+      bbFirst();
+      lockNav(850);
+    } else {
+      bookBlock.bookblock('next');
+      backCoverBookBlock.bookblock('next');
+      lockNav(850);
+    }
+  } else {
+    if (!fallbackItems.length) {
+      bookBack();
+      lockNav(750);
+      return;
+    }
+    if (fallbackIndex >= fallbackItems.length - 1) {
+      bookBack();
+      showFallbackItem(0);
+      lockNav(850);
+      return;
+    }
+    showFallbackItem(fallbackIndex + 1);
+    lockNav(700);
+  }
 };
-var bbPrev  = function () {
-  if (book.data('flip'))    return bookInside();
-  if (!book.data('opened')) return bookBack();
-  return bookDefault();
+
+var bbPrev = function () {
+  if (!canNavigate()) return;
+  var state = getBookState();
+  if (state === 'back') {
+    if (!hasBookblock && fallbackItems.length) {
+      showFallbackItem(fallbackItems.length - 1);
+    }
+    bbLast();
+    bookInside();
+    lockNav(850);
+    return;
+  }
+  if (state === 'default') {
+    bookBack();
+    lockNav(750);
+    return;
+  }
+  // opened — go back a page, or close book on first page
+  if (hasBookblock) {
+    var items    = bookBlock.children('.bb-item');
+    var curIndex = items.filter(':visible').index();
+    if (curIndex === 0) {
+      bookDefault();
+      lockNav(750);
+    } else {
+      bookBlock.bookblock('prev');
+      backCoverBookBlock.bookblock('prev');
+      lockNav(850);
+    }
+  } else {
+    if (!fallbackItems.length) {
+      bookDefault();
+      lockNav(750);
+      return;
+    }
+    if (fallbackIndex === 0) {
+      bookDefault();
+      lockNav(750);
+      return;
+    }
+    showFallbackItem(fallbackIndex - 1);
+    lockNav(700);
+  }
 };
 
 if (hasBookblock) {
@@ -166,46 +315,37 @@ if (hasBookblock) {
   bbFirst = function () { bookBlock.bookblock('first');  backCoverBookBlock.bookblock('first'); };
   bbLast  = function () { bookBlock.bookblock('last');   backCoverBookBlock.bookblock('last'); };
 
-  var bbLastIndex = bookBlock.children().length - 1;
-
-  bbNext = function () {
-    if (book.data('flip'))    return bookDefault();
-    if (!book.data('opened')) return bookInside();
-    if (bookBlock.find('.bb-item:visible').index() === bbLastIndex) { bookBack(); bbFirst(); return; }
-    bookBlock.bookblock('next');
-    backCoverBookBlock.bookblock('next');
-  };
-
-  bbPrev = function () {
-    if (book.data('flip'))    { bbLast(); bookInside(); return; }
-    if (!book.data('opened')) return bookBack();
-    if (bookBlock.find('.bb-item:visible').index() === 0) return bookDefault();
-    bookBlock.bookblock('prev');
-    backCoverBookBlock.bookblock('prev');
-  };
-
-  /* Swipe/click to turn pages — but NOT on screenshot grid cells */
+  /* Page turn on swipe/click — skip ss-cell and external links */
   bookBlock.children().add(backCoverBookBlock.children()).on({
-    swipeleft:  function () { bbPrev(); return false; },
+    swipeleft:  function () { bbNext(); return false; },
     swiperight: function () { bbPrev(); return false; },
     click: function (e) {
-      if ($(e.target).closest('.ss-cell').length)        return; /* handled by modal */
-      if ($(e.target).closest('.proj-github').length)    return; /* external link */
-      if ($(e.target).parents('.bk-cover-back').length === 0) bbNext();
-      else bbPrev();
-      return false;
+      var state = getBookState();
+      if (!canNavigate()) return;
+      if (state !== 'inside' && state !== 'back') return;
+      if ($(e.target).closest('.ss-cell').length)     return;
+      if ($(e.target).closest('.proj-github').length) return;
+      e.stopPropagation();
+      if ($(e.target).closest('.bk-cover-back').length === 0) {
+        bbNext();
+      } else {
+        bbPrev();
+      }
     }
   });
 
   bookBlock.bookblock({ speed: 800, shadow: false });
   backCoverBookBlock.bookblock({ speed: 800, shadow: false });
+} else {
+  bbFirst = function () { showFallbackItem(0); };
+  bbLast  = function () { showFallbackItem(fallbackItems.length - 1); };
 }
 
-/* Throttled keyboard nav */
+/* ─── Keyboard nav ─── */
 var throttle = function (fn, limit, qMax) {
   var last = +new Date, queued = 0;
   return function throttled () {
-    var now  = +new Date, args = [].slice.call(arguments);
+    var now = +new Date, args = [].slice.call(arguments);
     if (now - last > limit) { fn.apply(this, args); last = +new Date; }
     else {
       var b = throttled.bind.apply(throttled, [this].concat(args));
@@ -237,7 +377,6 @@ var modalClose   = $('#modalClose');
 var currentProject = null;
 var currentIndex   = 0;
 
-/* Build one slide (real image + fallback skeleton) */
 function buildSlide (ss, index) {
   return (
     '<div class="modal-screenshot ' + (index === 0 ? 'active' : '') + '" data-index="' + index + '">' +
@@ -268,25 +407,22 @@ function buildDots (count, active) {
 function openModal (projectIndex, startIndex) {
   currentProject = PROJECTS[projectIndex];
   currentIndex   = startIndex || 0;
-
   modalTitle.text(currentProject.title);
   modalFrame.empty();
   currentProject.screenshots.forEach(function (ss, i) {
     modalFrame.append(buildSlide(ss, i));
   });
-
   modalFrame.find('.modal-image').each(function () {
     var img = this;
     var preferred = img.getAttribute('data-preferred-src') || '';
     img.onerror = function () { tryNextImage(img); };
     initImageFallback(img, preferred);
   });
-
   updateModal();
   modal.addClass('active');
 }
 
-/* Thumbnail fallback for screenshot cells on the page */
+/* Thumbnail fallback for screenshot cells */
 $('.ss-cell img').each(function () {
   var img = this;
   var preferred = img.getAttribute('src') || '';
@@ -308,15 +444,13 @@ function modalPrev () { if (currentIndex > 0) { currentIndex--; updateModal(); }
 function modalNext () { if (currentIndex < currentProject.screenshots.length - 1) { currentIndex++; updateModal(); } }
 function closeModal () { modal.removeClass('active'); currentProject = null; }
 
-/* ── Click any ss-cell thumbnail → open at that index ── */
 $(document).on('click', '.ss-cell', function (e) {
   e.stopPropagation();
   var projIndex  = parseInt($(this).data('project'), 10);
-  var slideIndex = parseInt($(this).data('index'), 10);
+  var slideIndex = parseInt($(this).data('index'),   10);
   openModal(projIndex, slideIndex);
 });
 
-/* Modal controls */
 arrowLeft.on('click',  function (e) { e.stopPropagation(); modalPrev(); });
 arrowRight.on('click', function (e) { e.stopPropagation(); modalNext(); });
 modalClose.on('click', function (e) { e.stopPropagation(); closeModal(); });
