@@ -47,7 +47,6 @@ var PROJECTS = [
    BOOK STATE
    ══════════════════════════════════════════ */
 var book            = $('.bk-book');
-var bookPage        = book.children('div.bk-page');
 var viewBookLink    = book.find('.btn-open');
 var viewBackLink    = book.find('.btn-back');
 var changeColorLink = book.find('.change-color');
@@ -76,7 +75,6 @@ viewBackLink.on('click', function (e) {
   if (book.data('flip')) { bookDefault(); } else { bookBack(); }
   return false;
 });
-
 viewBookLink.on('click', function (e) {
   e.preventDefault();
   bookInside();
@@ -145,7 +143,7 @@ var bookBlockLast = function () {
 };
 
 var bookBlockNext = function () {
-  if (book.data('flip'))   return bookDefault();
+  if (book.data('flip'))    return bookDefault();
   if (!book.data('opened')) return bookInside();
   if (currentPageIndex === bookBlockLastIndex) {
     currentPageIndex = 0;
@@ -155,9 +153,8 @@ var bookBlockNext = function () {
   bookBlock.bookblock('next');
   backCoverBookBlock.bookblock('next');
 };
-
 var bookBlockPrev = function () {
-  if (book.data('flip'))   return bookBlockLast() + bookInside();
+  if (book.data('flip'))    return bookBlockLast() + bookInside();
   if (!book.data('opened')) return bookBack();
   if (currentPageIndex === 0) return bookDefault();
   currentPageIndex--;
@@ -165,25 +162,43 @@ var bookBlockPrev = function () {
   backCoverBookBlock.bookblock('prev');
 };
 
-/* Click left half → prev, right half → next.
-   ss-cell clicks open the modal and must NOT propagate to the page flip. */
+/* Page flip click — left half prev, right half next.
+   ss-cell and proj-github get plain `return` so they don't flip pages. */
 bookBlock.children().add(backCoverBookBlock.children()).on({
-  'swipeleft':  function ()        { bookBlockNext(); return false; },
-  'swiperight': function ()        { bookBlockPrev(); return false; },
-  'click':      function (event) {
-    /* ss-cell and proj-github are handled by their own delegated listeners */
-    if ($(event.target).closest('.ss-cell').length)     return false;
-    if ($(event.target).closest('.proj-github').length) return false;
-
-    var itemEl      = $(this);
-    var isRightHalf = (event.pageX - itemEl.offset().left) > (itemEl.outerWidth() / 2);
-    if (isRightHalf) bookBlockNext(); else bookBlockPrev();
+  'swipeleft':  function () { bookBlockNext(); return false; },
+  'swiperight': function () { bookBlockPrev(); return false; },
+  'click': function (event) {
+    if ($(event.target).closest('.ss-cell').length)     return;
+    if ($(event.target).closest('.proj-github').length) return;
+    var isRight = (event.pageX - $(this).offset().left) > ($(this).outerWidth() / 2);
+    if (isRight) bookBlockNext(); else bookBlockPrev();
     return false;
   }
 });
 
 bookBlock.bookblock({ speed: 800, shadow: false });
 backCoverBookBlock.bookblock({ speed: 800, shadow: false });
+
+/* ── Bind ss-cell click DIRECTLY on every cell in both instances.
+      Delegated (document-level) listeners don't work here because the
+      bookblock plugin calls stopPropagation on its own click handlers,
+      killing the event before it ever reaches document.
+      By binding directly on the element, our handler fires FIRST (before
+      the event bubbles up to the plugin), so stopPropagation here prevents
+      the plugin from ever seeing the click.                                ── */
+function bindCells(container) {
+  container.find('.ss-cell').on('click', function (e) {
+    e.stopPropagation();
+    e.preventDefault();
+    openModal(
+      parseInt($(this).data('project'), 10),
+      parseInt($(this).data('index'),   10)
+    );
+    return false;
+  });
+}
+bindCells(bookBlock);
+bindCells(backCoverBookBlock);
 
 /* ── Keyboard nav ── */
 var throttleFunc = function (func, limit, limitQueue) {
@@ -199,7 +214,6 @@ var throttleFunc = function (func, limit, limitQueue) {
     }
   };
 };
-
 $(document).keydown(throttleFunc(function (e) {
   if ($('#screenshotModal').hasClass('active')) return;
   var k = e.keyCode || e.which;
@@ -225,7 +239,7 @@ var currentIndex   = 0;
 function buildSlide (ss, index) {
   return (
     '<div class="modal-screenshot' + (index === 0 ? ' active' : '') + '" data-index="' + index + '">' +
-      '<img class="modal-image" src="' + ss.src + '" alt="' + ss.label + '" loading="lazy">' +
+      '<img class="modal-image" src="' + ss.src + '" alt="' + ss.label + '">' +
       '<div class="ss-placeholder">' +
         '<div class="ss-mockbody">' +
           '<div class="ss-mockbar"></div><div class="ss-mockbar short"></div>' +
@@ -268,21 +282,9 @@ function updateModal () {
   arrowRight.css('opacity', currentIndex === total - 1 ? '0.2' : '1');
 }
 
-function modalPrev () { if (currentIndex > 0) { currentIndex--; updateModal(); } }
-function modalNext () { if (currentIndex < currentProject.screenshots.length - 1) { currentIndex++; updateModal(); } }
+function modalPrev () { if (currentIndex > 0)                                       { currentIndex--; updateModal(); } }
+function modalNext () { if (currentIndex < currentProject.screenshots.length - 1)  { currentIndex++; updateModal(); } }
 function closeModal () { modal.removeClass('active'); currentProject = null; }
-
-/* Use delegated click on document so it catches clicks on both the original
-   and the cloned bookblock items inside .bk-cover-back */
-$(document).on('click', '.ss-cell', function (e) {
-  e.stopPropagation();
-  e.preventDefault();
-  openModal(
-    parseInt($(this).data('project'), 10),
-    parseInt($(this).data('index'),   10)
-  );
-  return false;
-});
 
 arrowLeft.on('click',  function (e) { e.stopPropagation(); modalPrev(); });
 arrowRight.on('click', function (e) { e.stopPropagation(); modalNext(); });
@@ -294,7 +296,6 @@ $(document).on('click', '.modal-dot', function (e) {
   currentIndex = parseInt($(this).data('dot'), 10);
   updateModal();
 });
-
 $(document).on('keydown', function (e) {
   if (!modal.hasClass('active')) return;
   var k = e.keyCode || e.which;
