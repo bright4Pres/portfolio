@@ -71,9 +71,11 @@ a:hover { color: var(--accent); }
 }
 .bk-front > div { backface-visibility: hidden; transform-style: preserve-3d; }
 
-/* ── FIX: was display:none which broke bookblock dimension calc on init.
-         visibility:hidden keeps the element in layout so the plugin can
-         measure it, but hides it visually until the book opens.          ── */
+/* ── .bk-page sits in layout (visibility:hidden, not display:none) so the
+      bookblock plugin can measure its dimensions on init. But its direct child
+      (.bb-bookblock) is shifted -100% off-screen — exactly like the original.
+      The page content you actually SEE comes from the clone the JS appends
+      into .bk-cover-back (the back face of the front cover).               ── */
 .bk-page {
   transform: translate3d(0,0,19px);
   visibility: hidden;
@@ -82,13 +84,10 @@ a:hover { color: var(--accent); }
   backface-visibility: hidden; z-index: 9;
 }
 
-/* ── Show pages once the book is open ── */
-.bk-viewinside .bk-page {
-  visibility: visible;
-  pointer-events: auto;
-}
-
+/* Shift the original bookblock off-screen — the CLONE in .bk-cover-back
+   is what gets shown when the front cover swings open. */
 .bk-page > div { margin-left: -100%; }
+
 .bk-front, .bk-back, .bk-front > div { width: 100%; height: 100%; }
 .bk-left, .bk-right  { width: 40px; left: -20px; }
 .bk-top, .bk-bottom  { width: 495px; height: 40px; top: -15px; backface-visibility: hidden; }
@@ -170,7 +169,7 @@ a:hover { color: var(--accent); }
 }
 
 /* ══════════════════════════════════════════
-   PAGE SPREADS
+   PAGE SPREADS (rendered inside .bk-cover-back via the JS clone)
    ══════════════════════════════════════════ */
 .page-spread {
   width: 50%; height: 100%; float: left;
@@ -275,9 +274,7 @@ a:hover { color: var(--accent); }
   min-width: 0;
 }
 
-.ss-cell:hover {
-  border-color: var(--accent);
-}
+.ss-cell:hover { border-color: var(--accent); }
 
 .ss-cell img {
   position: absolute;
@@ -292,10 +289,7 @@ a:hover { color: var(--accent); }
   z-index: 1;
 }
 
-.ss-cell:hover img {
-  transform: scale(1.04);
-  opacity: 1;
-}
+.ss-cell:hover img { transform: scale(1.04); opacity: 1; }
 
 .ss-cell::before {
   content: '';
@@ -324,9 +318,7 @@ a:hover { color: var(--accent); }
   transition: opacity 0.2s;
 }
 
-.ss-cell:hover .ss-cell-label {
-  opacity: 1;
-}
+.ss-cell:hover .ss-cell-label { opacity: 1; }
 
 .ss-cell::after {
   content: '⤢';
@@ -441,22 +433,17 @@ a:hover { color: var(--accent); }
 .modal-screenshot.active { opacity: 1; }
 
 .modal-image {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  object-position: center;
-  display: block;
-  z-index: 2;
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: contain; object-position: center;
+  display: block; z-index: 2;
 }
 
 .ss-placeholder {
   position: absolute; inset: 0;
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
-  gap: 8px; background: #111;
-  z-index: 1;
+  gap: 8px; background: #111; z-index: 1;
 }
 .ss-mockbody { width: 60%; display: flex; flex-direction: column; gap: 6px; }
 .ss-mockbar  { height: 6px; background: var(--faint); }
@@ -519,25 +506,6 @@ a:hover { color: var(--accent); }
 .bb-item { width: 100%; height: 100%; position: absolute; top: 0; left: 0; display: none; }
 .no-js .bb-bookblock, .no-js ul.bb-custom-grid li { width: auto; height: auto; }
 .no-js .bb-item { display: block; position: relative; }
-
-/* Fallback layout when BookBlock plugin is unavailable */
-.bk-book.bb-fallback .bk-page > div { margin-left: 0; }
-.bk-book.bb-fallback .bb-bookblock { width: 100%; }
-.bk-book.bb-fallback .bb-item {
-  width: 100%;
-  display: block;
-  opacity: 0;
-  pointer-events: none;
-  transform: translateX(2%);
-  transition: opacity 0.32s ease, transform 0.32s ease;
-}
-.bk-book.bb-fallback .bb-item.is-active {
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateX(0);
-}
-.bk-book.bb-fallback.bk-viewinside { margin-left: 0; }
-.bk-book.bb-fallback.bk-viewinside .bk-front { transform: translate3d(0,0,20px) rotate3d(0,1,0,-175deg); }
 
 /* ══════════════════════════════════════════
    TINT PALETTE

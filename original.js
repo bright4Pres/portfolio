@@ -1,3 +1,4 @@
+// original
 var book = $('.bk-book');
 var bookPage = book.children('div.bk-page');
 var viewBookLink = book.find('.bk-bookview');
