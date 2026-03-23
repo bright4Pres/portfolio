@@ -71,20 +71,12 @@ a:hover { color: var(--accent); }
 }
 .bk-front > div { backface-visibility: hidden; transform-style: preserve-3d; }
 
-/* ── Matches the original exactly.
-      .bk-page is display:none — it is NEVER shown directly.
-      The JS clones the .bb-bookblock inside it and appends the clone to
-      .bk-cover-back; that clone is the only thing the user ever sees.
-      The original bookBlock calls (bookblock('next') etc.) run silently
-      to keep internal plugin state in sync with the visible clone.         ── */
 .bk-page {
   transform: translate3d(0,0,19px);
   display: none;
   width: 100%; height: 100%; overflow: hidden;
   backface-visibility: hidden; z-index: 9;
 }
-
-/* Keeps the hidden original bookBlock shifted off-screen as a safety net. */
 .bk-page > div { margin-left: -100%; }
 
 .bk-front, .bk-back, .bk-front > div { width: 100%; height: 100%; }
@@ -168,7 +160,7 @@ a:hover { color: var(--accent); }
 }
 
 /* ══════════════════════════════════════════
-   PAGE SPREADS  (live inside .bk-cover-back via the JS clone)
+   PAGE SPREADS
    ══════════════════════════════════════════ */
 .page-spread {
   width: 50%; height: 100%; float: left;
@@ -255,11 +247,13 @@ a:hover { color: var(--accent); }
 .ss-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-auto-rows: minmax(0, 1fr);
+  grid-template-rows: 1fr 1fr;
   gap: 5px;
   flex: 1;
+  /* FIX: height:0 was collapsing all cells to invisible thin bars.
+     min-height:0 is enough to let flexbox shrink it; the grid rows
+     fill available space via grid-template-rows:1fr 1fr.            */
   min-height: 0;
-  height: 0;
   cursor: pointer;
 }
 
@@ -269,23 +263,29 @@ a:hover { color: var(--accent); }
   background: var(--faint);
   border: 1px solid var(--line);
   transition: border-color 0.2s;
-  min-height: 0;
-  min-width: 0;
+  cursor: pointer;
+  /* Ensure the cell itself has some minimum height */
+  min-height: 48px;
 }
 
 .ss-cell:hover { border-color: var(--accent); }
 
 .ss-cell img {
-  position: absolute; inset: 0;
-  width: 100%; height: 100%;
-  object-fit: cover; object-position: top;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
   display: block;
   transition: transform 0.3s, opacity 0.2s;
-  opacity: 0.9; z-index: 1;
+  opacity: 0.88;
+  z-index: 1;
 }
 
 .ss-cell:hover img { transform: scale(1.04); opacity: 1; }
 
+/* Subtle grid pattern behind images */
 .ss-cell::before {
   content: '';
   position: absolute; inset: 0;
@@ -293,23 +293,34 @@ a:hover { color: var(--accent); }
     linear-gradient(var(--line) 1px, transparent 1px),
     linear-gradient(90deg, var(--line) 1px, transparent 1px);
   background-size: 16px 16px;
-  opacity: 0.6; z-index: 0;
+  opacity: 0.4;
+  z-index: 0;
 }
 
 .ss-cell-label {
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 0.42em; color: var(--muted); letter-spacing: 0.06em;
-  position: absolute; bottom: 5px; left: 6px; z-index: 3;
-  background: rgba(10,10,10,0.75); padding: 1px 5px;
-  pointer-events: none; opacity: 0; transition: opacity 0.2s;
+  font-size: 0.42em;
+  color: var(--white);
+  letter-spacing: 0.06em;
+  position: absolute;
+  bottom: 5px;
+  left: 6px;
+  z-index: 3;
+  background: rgba(10,10,10,0.8);
+  padding: 1px 5px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
 }
 .ss-cell:hover .ss-cell-label { opacity: 1; }
 
 .ss-cell::after {
   content: '⤢';
-  position: absolute; top: 5px; right: 7px;
+  position: absolute;
+  top: 5px; right: 7px;
   font-size: 0.55em; color: var(--accent);
-  opacity: 0; transition: opacity 0.2s; z-index: 3; pointer-events: none;
+  opacity: 0; transition: opacity 0.2s;
+  z-index: 3; pointer-events: none;
 }
 .ss-cell:hover::after { opacity: 1; }
 

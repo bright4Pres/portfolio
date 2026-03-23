@@ -1,7 +1,5 @@
 /* ══════════════════════════════════════════
    BRIGHT BASTASA — script.js
-   Book logic: mirrors original portfolio.js
-   Extras kept: tint switcher, screenshot modal
    ══════════════════════════════════════════ */
 
 var PROJECTS = [
@@ -20,7 +18,9 @@ var PROJECTS = [
       { label: 'Book catalog table',        src: 'screenshots/etala-1.png' },
       { label: 'Borrow and return records', src: 'screenshots/etala-2.png' },
       { label: 'Admin dashboard stats',     src: 'screenshots/etala-3.png' },
-      { label: 'Search and filter tools',   src: 'screenshots/etala-4.png' }
+      { label: 'Search and filter tools',   src: 'screenshots/etala-4.png' },
+      { label: 'Reports and analytics',     src: 'screenshots/etala-5.png' },
+      { label: 'Settings and management',   src: 'screenshots/etala-6.png' }
     ]
   },
   {
@@ -44,7 +44,7 @@ var PROJECTS = [
 ];
 
 /* ══════════════════════════════════════════
-   BOOK STATE  (mirrors original exactly)
+   BOOK STATE
    ══════════════════════════════════════════ */
 var book            = $('.bk-book');
 var bookPage        = book.children('div.bk-page');
@@ -73,11 +73,7 @@ bookDefault();
 
 viewBackLink.on('click', function (e) {
   e.preventDefault();
-  if (book.data('flip')) {
-    bookDefault();
-  } else {
-    bookBack();
-  }
+  if (book.data('flip')) { bookDefault(); } else { bookBack(); }
   return false;
 });
 
@@ -105,14 +101,12 @@ var colorLabel = (function () {
 })();
 
 changeColorLink.on('click', function (e) {
-  e.preventDefault();
-  e.stopPropagation();
+  e.preventDefault(); e.stopPropagation();
   colorContainers.toggleClass('hidden');
   $(this).text(colorLabel());
 });
 
 var dynamicStyle = $('<style></style>').appendTo('head');
-
 colorContainers.find('.color-square').on('click', function (e) {
   e.stopPropagation();
   var c = $(this).attr('class').match(/background-color-([a-f0-9]{6})/i)[1];
@@ -136,11 +130,6 @@ var backCover          = bookBlock.parents('.bk-book').find('.bk-cover-back');
 var backCoverBookBlock = bookBlock.clone();
 backCoverBookBlock.appendTo(backCover);
 
-/* ── Track current page index manually.
-      We cannot use .bb-item:visible — bookBlock is in display:none (.bk-page)
-      so jQuery :visible always misfires. We also cannot check backCoverBookBlock
-      because the clone's items fire their events from inside .bk-cover-back,
-      which the old check used to route to bookBlockPrev (wrong direction).   ── */
 var bookBlockLastIndex = bookBlock.children().length - 1;
 var currentPageIndex   = 0;
 
@@ -156,10 +145,8 @@ var bookBlockLast = function () {
 };
 
 var bookBlockNext = function () {
-  if (book.data('flip'))
-    return bookDefault();
-  if (!book.data('opened'))
-    return bookInside();
+  if (book.data('flip'))   return bookDefault();
+  if (!book.data('opened')) return bookInside();
   if (currentPageIndex === bookBlockLastIndex) {
     currentPageIndex = 0;
     return bookBack() + bookBlockFirst();
@@ -170,36 +157,27 @@ var bookBlockNext = function () {
 };
 
 var bookBlockPrev = function () {
-  if (book.data('flip'))
-    return bookBlockLast() + bookInside();
-  if (!book.data('opened'))
-    return bookBack();
-  if (currentPageIndex === 0)
-    return bookDefault();
+  if (book.data('flip'))   return bookBlockLast() + bookInside();
+  if (!book.data('opened')) return bookBack();
+  if (currentPageIndex === 0) return bookDefault();
   currentPageIndex--;
   bookBlock.bookblock('prev');
   backCoverBookBlock.bookblock('prev');
 };
 
-/* ── Click handler: the visible pages are the clone inside .bk-cover-back.
-      The original's check `parents('.bk-cover-back') → prev` was correct for
-      its looping demo, but for a linear portfolio clicking should always go
-      NEXT (forward). Left arrow key and the Back button handle going backward. ── */
+/* Click left half → prev, right half → next.
+   ss-cell clicks open the modal and must NOT propagate to the page flip. */
 bookBlock.children().add(backCoverBookBlock.children()).on({
-  'swipeleft': function () {
-    bookBlockNext();
-    return false;
-  },
-  'swiperight': function () {
-    bookBlockPrev();
-    return false;
-  },
-  'click': function (event) {
-    /* Let screenshot cells and GitHub links pass through untouched */
-    if ($(event.target).closest('.ss-cell').length)     return;
-    if ($(event.target).closest('.proj-github').length) return;
-    /* Always go forward on click — backward is left arrow / Back button */
-    bookBlockNext();
+  'swipeleft':  function ()        { bookBlockNext(); return false; },
+  'swiperight': function ()        { bookBlockPrev(); return false; },
+  'click':      function (event) {
+    /* ss-cell and proj-github are handled by their own delegated listeners */
+    if ($(event.target).closest('.ss-cell').length)     return false;
+    if ($(event.target).closest('.proj-github').length) return false;
+
+    var itemEl      = $(this);
+    var isRightHalf = (event.pageX - itemEl.offset().left) > (itemEl.outerWidth() / 2);
+    if (isRightHalf) bookBlockNext(); else bookBlockPrev();
     return false;
   }
 });
@@ -209,65 +187,25 @@ backCoverBookBlock.bookblock({ speed: 800, shadow: false });
 
 /* ── Keyboard nav ── */
 var throttleFunc = function (func, limit, limitQueue) {
-  var lastTime = +new Date;
-  var queued   = 0;
+  var lastTime = +new Date, queued = 0;
   return function throttledFunc () {
-    var now  = +new Date;
-    var args = Array.prototype.slice.call(arguments);
+    var now = +new Date, args = Array.prototype.slice.call(arguments);
     if (now - lastTime > limit) {
-      func.apply(this, args);
-      lastTime = +new Date;
+      func.apply(this, args); lastTime = +new Date;
     } else {
-      var boundFunc = throttledFunc.bind.apply(throttledFunc, [this].concat(args));
+      var b = throttledFunc.bind.apply(throttledFunc, [this].concat(args));
       queued++;
-      if (queued < limitQueue)
-        window.setTimeout(boundFunc, lastTime + limit - now);
+      if (queued < limitQueue) window.setTimeout(b, lastTime + limit - now);
     }
   };
 };
 
 $(document).keydown(throttleFunc(function (e) {
   if ($('#screenshotModal').hasClass('active')) return;
-  var keyCode = e.keyCode || e.which;
-  if (keyCode === 37) bookBlockPrev();
-  if (keyCode === 39) bookBlockNext();
+  var k = e.keyCode || e.which;
+  if (k === 37) bookBlockPrev();
+  if (k === 39) bookBlockNext();
 }, 500, 2));
-
-/* ══════════════════════════════════════════
-   IMAGE FALLBACK HELPERS
-   ══════════════════════════════════════════ */
-var IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp'];
-
-function imageBase (path) { return path.replace(/\.[^/.]+$/, ''); }
-
-function extensionOrder (path) {
-  var m = path.match(/\.([^.\/]+)$/);
-  var preferred = m ? m[1].toLowerCase() : 'png';
-  return [preferred].concat(IMAGE_EXTENSIONS.filter(function (ext) { return ext !== preferred; }));
-}
-
-function initImageFallback (img, preferredPath) {
-  var base  = imageBase(preferredPath);
-  var order = extensionOrder(preferredPath);
-  img.dataset.base     = base;
-  img.dataset.order    = order.join(',');
-  img.dataset.tryIndex = '0';
-  img.src = base + '.' + order[0];
-}
-
-function tryNextImage (img) {
-  var order     = (img.dataset.order || '').split(',').filter(Boolean);
-  var nextIndex = parseInt(img.dataset.tryIndex || '0', 10) + 1;
-  if (nextIndex >= order.length) { img.style.display = 'none'; return; }
-  img.dataset.tryIndex = String(nextIndex);
-  img.src = img.dataset.base + '.' + order[nextIndex];
-}
-
-$('.ss-cell img').each(function () {
-  var img = this;
-  img.onerror = function () { tryNextImage(img); };
-  initImageFallback(img, img.getAttribute('src') || '');
-});
 
 /* ══════════════════════════════════════════
    SCREENSHOT MODAL
@@ -286,12 +224,11 @@ var currentIndex   = 0;
 
 function buildSlide (ss, index) {
   return (
-    '<div class="modal-screenshot ' + (index === 0 ? 'active' : '') + '" data-index="' + index + '">' +
-      '<img class="modal-image" data-preferred-src="' + ss.src + '" alt="' + ss.label + '" loading="lazy">' +
+    '<div class="modal-screenshot' + (index === 0 ? ' active' : '') + '" data-index="' + index + '">' +
+      '<img class="modal-image" src="' + ss.src + '" alt="' + ss.label + '" loading="lazy">' +
       '<div class="ss-placeholder">' +
         '<div class="ss-mockbody">' +
-          '<div class="ss-mockbar"></div>' +
-          '<div class="ss-mockbar short"></div>' +
+          '<div class="ss-mockbar"></div><div class="ss-mockbar short"></div>' +
           '<div class="ss-mockbar accent"></div>' +
           '<div class="ss-mockrow"></div><div class="ss-mockrow"></div>' +
           '<div class="ss-mockrow"></div><div class="ss-mockrow"></div>' +
@@ -317,11 +254,6 @@ function openModal (projectIndex, startIndex) {
   currentProject.screenshots.forEach(function (ss, i) {
     modalFrame.append(buildSlide(ss, i));
   });
-  modalFrame.find('.modal-image').each(function () {
-    var img = this;
-    img.onerror = function () { tryNextImage(img); };
-    initImageFallback(img, img.getAttribute('data-preferred-src') || '');
-  });
   updateModal();
   modal.addClass('active');
 }
@@ -336,20 +268,20 @@ function updateModal () {
   arrowRight.css('opacity', currentIndex === total - 1 ? '0.2' : '1');
 }
 
-function modalPrev () {
-  if (currentIndex > 0) { currentIndex--; updateModal(); }
-}
-function modalNext () {
-  if (currentIndex < currentProject.screenshots.length - 1) { currentIndex++; updateModal(); }
-}
-function closeModal () {
-  modal.removeClass('active');
-  currentProject = null;
-}
+function modalPrev () { if (currentIndex > 0) { currentIndex--; updateModal(); } }
+function modalNext () { if (currentIndex < currentProject.screenshots.length - 1) { currentIndex++; updateModal(); } }
+function closeModal () { modal.removeClass('active'); currentProject = null; }
 
+/* Use delegated click on document so it catches clicks on both the original
+   and the cloned bookblock items inside .bk-cover-back */
 $(document).on('click', '.ss-cell', function (e) {
   e.stopPropagation();
-  openModal(parseInt($(this).data('project'), 10), parseInt($(this).data('index'), 10));
+  e.preventDefault();
+  openModal(
+    parseInt($(this).data('project'), 10),
+    parseInt($(this).data('index'),   10)
+  );
+  return false;
 });
 
 arrowLeft.on('click',  function (e) { e.stopPropagation(); modalPrev(); });
