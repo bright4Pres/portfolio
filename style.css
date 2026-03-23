@@ -71,21 +71,20 @@ a:hover { color: var(--accent); }
 }
 .bk-front > div { backface-visibility: hidden; transform-style: preserve-3d; }
 
-/* ── .bk-page sits in layout (visibility:hidden, not display:none) so the
-      bookblock plugin can measure its dimensions on init. But its direct child
-      (.bb-bookblock) is shifted -100% off-screen — exactly like the original.
-      The page content you actually SEE comes from the clone the JS appends
-      into .bk-cover-back (the back face of the front cover).               ── */
+/* ── Matches the original exactly.
+      .bk-page is display:none — it is NEVER shown directly.
+      The JS clones the .bb-bookblock inside it and appends the clone to
+      .bk-cover-back; that clone is the only thing the user ever sees.
+      The original bookBlock calls (bookblock('next') etc.) run silently
+      to keep internal plugin state in sync with the visible clone.         ── */
 .bk-page {
   transform: translate3d(0,0,19px);
-  visibility: hidden;
-  pointer-events: none;
+  display: none;
   width: 100%; height: 100%; overflow: hidden;
   backface-visibility: hidden; z-index: 9;
 }
 
-/* Shift the original bookblock off-screen — the CLONE in .bk-cover-back
-   is what gets shown when the front cover swings open. */
+/* Keeps the hidden original bookBlock shifted off-screen as a safety net. */
 .bk-page > div { margin-left: -100%; }
 
 .bk-front, .bk-back, .bk-front > div { width: 100%; height: 100%; }
@@ -169,7 +168,7 @@ a:hover { color: var(--accent); }
 }
 
 /* ══════════════════════════════════════════
-   PAGE SPREADS (rendered inside .bk-cover-back via the JS clone)
+   PAGE SPREADS  (live inside .bk-cover-back via the JS clone)
    ══════════════════════════════════════════ */
 .page-spread {
   width: 50%; height: 100%; float: left;
@@ -277,16 +276,12 @@ a:hover { color: var(--accent); }
 .ss-cell:hover { border-color: var(--accent); }
 
 .ss-cell img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: top;
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover; object-position: top;
   display: block;
   transition: transform 0.3s, opacity 0.2s;
-  opacity: 0.9;
-  z-index: 1;
+  opacity: 0.9; z-index: 1;
 }
 
 .ss-cell:hover img { transform: scale(1.04); opacity: 1; }
@@ -298,38 +293,23 @@ a:hover { color: var(--accent); }
     linear-gradient(var(--line) 1px, transparent 1px),
     linear-gradient(90deg, var(--line) 1px, transparent 1px);
   background-size: 16px 16px;
-  opacity: 0.6;
-  z-index: 0;
+  opacity: 0.6; z-index: 0;
 }
 
 .ss-cell-label {
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 0.42em;
-  color: var(--muted);
-  letter-spacing: 0.06em;
-  position: absolute;
-  bottom: 5px;
-  left: 6px;
-  z-index: 3;
-  background: rgba(10,10,10,0.75);
-  padding: 1px 5px;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.2s;
+  font-size: 0.42em; color: var(--muted); letter-spacing: 0.06em;
+  position: absolute; bottom: 5px; left: 6px; z-index: 3;
+  background: rgba(10,10,10,0.75); padding: 1px 5px;
+  pointer-events: none; opacity: 0; transition: opacity 0.2s;
 }
-
 .ss-cell:hover .ss-cell-label { opacity: 1; }
 
 .ss-cell::after {
   content: '⤢';
-  position: absolute;
-  top: 5px; right: 7px;
-  font-size: 0.55em;
-  color: var(--accent);
-  opacity: 0;
-  transition: opacity 0.2s;
-  z-index: 3;
-  pointer-events: none;
+  position: absolute; top: 5px; right: 7px;
+  font-size: 0.55em; color: var(--accent);
+  opacity: 0; transition: opacity 0.2s; z-index: 3; pointer-events: none;
 }
 .ss-cell:hover::after { opacity: 1; }
 
