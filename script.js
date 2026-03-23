@@ -6,10 +6,10 @@ var PROJECTS = [
   {
     title: 'Canteen Mobile App',
     screenshots: [
-      { label: 'Login and role selection',  src: 'screenshots/canteen-1.png' },
-      { label: 'Menu and ordering flow',    src: 'screenshots/canteen-2.png' },
-      { label: 'Order management view',     src: 'screenshots/canteen-3.png' },
-      { label: 'Sales summary and history', src: 'screenshots/canteen-4.png' }
+      { label: 'Login and role selection',  src: 'screenshots/canteen-1.jpg' },
+      { label: 'Menu and ordering flow',    src: 'screenshots/canteen-2.jpg' },
+      { label: 'Order management view',     src: 'screenshots/canteen-3.jpg' },
+      { label: 'Sales summary and history', src: 'screenshots/canteen-4.jpg' }
     ]
   },
   {
@@ -76,9 +76,7 @@ viewBackLink.on('click', function (e) {
   return false;
 });
 viewBookLink.on('click', function (e) {
-  e.preventDefault();
-  bookInside();
-  return false;
+  e.preventDefault(); bookInside(); return false;
 });
 
 $('html').on('click', function (event) {
@@ -128,6 +126,28 @@ var backCover          = bookBlock.parents('.bk-book').find('.bk-cover-back');
 var backCoverBookBlock = bookBlock.clone();
 backCoverBookBlock.appendTo(backCover);
 
+/* ── Inject "+N more" overlay on the 4th thumbnail for projects
+      that have more than 4 screenshots. Run on both instances.   ── */
+function injectMoreOverlays(container) {
+  container.find('.ss-grid').each(function () {
+    var grid       = $(this);
+    var projectIdx = parseInt(grid.data('project'), 10);
+    var project    = PROJECTS[projectIdx];
+    if (!project) return;
+    var extra = project.screenshots.length - 4;
+    if (extra <= 0) return;
+    /* The 4th cell (index 3) gets the overlay */
+    var fourthCell = grid.find('.ss-cell').eq(3);
+    if (!fourthCell.length) return;
+    fourthCell.append(
+      '<div class="ss-more-overlay"><span>+' + extra + ' more</span></div>'
+    );
+  });
+}
+
+injectMoreOverlays(bookBlock);
+injectMoreOverlays(backCoverBookBlock);
+
 var bookBlockLastIndex = bookBlock.children().length - 1;
 var currentPageIndex   = 0;
 
@@ -146,8 +166,7 @@ var bookBlockNext = function () {
   if (book.data('flip'))    return bookDefault();
   if (!book.data('opened')) return bookInside();
   if (currentPageIndex === bookBlockLastIndex) {
-    currentPageIndex = 0;
-    return bookBack() + bookBlockFirst();
+    currentPageIndex = 0; return bookBack() + bookBlockFirst();
   }
   currentPageIndex++;
   bookBlock.bookblock('next');
@@ -162,8 +181,6 @@ var bookBlockPrev = function () {
   backCoverBookBlock.bookblock('prev');
 };
 
-/* Page flip click — left half prev, right half next.
-   ss-cell and proj-github get plain `return` so they don't flip pages. */
 bookBlock.children().add(backCoverBookBlock.children()).on({
   'swipeleft':  function () { bookBlockNext(); return false; },
   'swiperight': function () { bookBlockPrev(); return false; },
@@ -179,17 +196,11 @@ bookBlock.children().add(backCoverBookBlock.children()).on({
 bookBlock.bookblock({ speed: 800, shadow: false });
 backCoverBookBlock.bookblock({ speed: 800, shadow: false });
 
-/* ── Bind ss-cell click DIRECTLY on every cell in both instances.
-      Delegated (document-level) listeners don't work here because the
-      bookblock plugin calls stopPropagation on its own click handlers,
-      killing the event before it ever reaches document.
-      By binding directly on the element, our handler fires FIRST (before
-      the event bubbles up to the plugin), so stopPropagation here prevents
-      the plugin from ever seeing the click.                                ── */
+/* ── Bind ss-cell click DIRECTLY — bookblock stopPropagation would
+      kill delegated (document-level) listeners.                   ── */
 function bindCells(container) {
   container.find('.ss-cell').on('click', function (e) {
-    e.stopPropagation();
-    e.preventDefault();
+    e.stopPropagation(); e.preventDefault();
     openModal(
       parseInt($(this).data('project'), 10),
       parseInt($(this).data('index'),   10)
@@ -240,14 +251,12 @@ function buildSlide (ss, index) {
   return (
     '<div class="modal-screenshot' + (index === 0 ? ' active' : '') + '" data-index="' + index + '">' +
       '<img class="modal-image" src="' + ss.src + '" alt="' + ss.label + '">' +
-      '<div class="ss-placeholder">' +
-        '<div class="ss-mockbody">' +
-          '<div class="ss-mockbar"></div><div class="ss-mockbar short"></div>' +
-          '<div class="ss-mockbar accent"></div>' +
-          '<div class="ss-mockrow"></div><div class="ss-mockrow"></div>' +
-          '<div class="ss-mockrow"></div><div class="ss-mockrow"></div>' +
-        '</div>' +
-      '</div>' +
+      '<div class="ss-placeholder"><div class="ss-mockbody">' +
+        '<div class="ss-mockbar"></div><div class="ss-mockbar short"></div>' +
+        '<div class="ss-mockbar accent"></div>' +
+        '<div class="ss-mockrow"></div><div class="ss-mockrow"></div>' +
+        '<div class="ss-mockrow"></div><div class="ss-mockrow"></div>' +
+      '</div></div>' +
       '<span class="ss-label">' + ss.label + '</span>' +
     '</div>'
   );
@@ -282,8 +291,8 @@ function updateModal () {
   arrowRight.css('opacity', currentIndex === total - 1 ? '0.2' : '1');
 }
 
-function modalPrev () { if (currentIndex > 0)                                       { currentIndex--; updateModal(); } }
-function modalNext () { if (currentIndex < currentProject.screenshots.length - 1)  { currentIndex++; updateModal(); } }
+function modalPrev () { if (currentIndex > 0)                                      { currentIndex--; updateModal(); } }
+function modalNext () { if (currentIndex < currentProject.screenshots.length - 1) { currentIndex++; updateModal(); } }
 function closeModal () { modal.removeClass('active'); currentProject = null; }
 
 arrowLeft.on('click',  function (e) { e.stopPropagation(); modalPrev(); });
