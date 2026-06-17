@@ -79,6 +79,27 @@ viewBookLink.on('click', function (e) {
   e.preventDefault(); bookInside(); return false;
 });
 
+/* ── Clicking the front cover itself (not the h3 links) opens the book ── */
+book.find('.bk-cover').on('click', function (e) {
+  if ($(e.target).closest('h3').length) return; /* let Open/Back/Tint links handle themselves */
+  if ($(e.target).closest('.color-container').length) return; /* let tint swatches handle themselves */
+  e.preventDefault();
+  e.stopPropagation();
+  bookInside();
+  return false;
+});
+
+/* ── Clicking the back cover's margin/spine (not its bookblock pages)
+      returns to the front. The cloned bookblock inside has its own
+      click-to-flip handler; we only act when that wasn't the target. ── */
+book.find('.bk-back-container').on('click', function (e) {
+  if ($(e.target).closest('.bb-bookblock').length) return;
+  e.preventDefault();
+  e.stopPropagation();
+  bookDefault();
+  return false;
+});
+
 $('html').on('click', function (event) {
   if ($('#screenshotModal').hasClass('active')) return;
   if ($(event.target).parents('.bk-book').length === 0) {
